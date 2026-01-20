@@ -19,5 +19,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Configure axios defaults
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
