@@ -22,6 +22,7 @@ export interface GetUserResponse {
   providerUid: string;
 }
 
+// firebase 登录接口
 export const loginWithFirebase = (idToken: string): Promise<LoginFirebaseResponse> => {
-  return request.post('/login/firebase', {idToken});
+  return request.post("/login/firebase", { idToken });
 };
