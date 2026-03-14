@@ -23,9 +23,9 @@ request.interceptors.response.use(
   },
   error => {
     if (!error.response) {
-      return Promise.reject(new Error("网络错误, 请稍后重试"));
+      return Promise.reject(new Error("network error"));
     }
-    return Promise.reject(new Error(error.response.data?.msg || "操作失败"));
+    return Promise.reject(new Error(error.response.data.error));
   },
 );
 

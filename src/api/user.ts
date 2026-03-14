@@ -2,7 +2,7 @@ import request from "@/utils/request";
 
 // Firebase登录请求接口
 export interface LoginFirebaseRequest {
-  idToken: string;
+  id_token: string;
 }
 
 // Firebase登录响应接口
@@ -22,7 +22,7 @@ export interface GetUserResponse {
   providerUid: string;
 }
 
-// firebase 登录接口
-export const loginWithFirebase = (idToken: string): Promise<LoginFirebaseResponse> => {
-  return request.post("/login/firebase", { idToken });
+// firebase登录接口
+export const firebaseLoginAPI = (id_token: string): Promise<LoginFirebaseResponse> => {
+  return request.post("/firebase/login", { id_token });
 };
