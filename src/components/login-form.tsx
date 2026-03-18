@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "@/third_party/firebase";
+import { LoginGithub } from "@/third_party/github";
 import { firebaseLoginAPI } from "@/api/user";
 
 interface LoginFormProps extends Omit<
@@ -19,11 +20,7 @@ interface LoginFormProps extends Omit<
   onLoginSuccess?: () => void;
 }
 
-export function LoginForm({
-  className,
-  onLoginSuccess,
-  ...props
-}: LoginFormProps) {
+export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProps) {
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
@@ -86,7 +83,7 @@ export function LoginForm({
         <FieldSeparator>Or continue with</FieldSeparator>
         <Field>
           <div className="flex flex-col gap-2">
-            <Button variant="outline" type="button" className="w-full">
+            <Button variant="outline" type="button" className="w-full" onClick={LoginGithub}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <path
                   d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
@@ -101,28 +98,7 @@ export function LoginForm({
               className="w-full flex items-center justify-center gap-2"
               onClick={handleGoogleLogin}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                className="w-4 h-4"
-              >
-                <path
-                  fill="#EA4335"
-                  d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.7 2.8-4.1 2.8-6.9 0-.7-.1-1.3-.2-1.9H12z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M6.6 13.9 5.9 14.4l-2.4 1.8C5.1 19.7 8.3 21.6 12 21.6c2.3 0 4.2-.7 5.6-1.9l-3-2.3c-.8.5-1.8.9-2.6.9-2 0-3.8-1.3-4.4-3.2z"
-                />
-                <path
-                  fill="#4A90E2"
-                  d="M3.5 7.7C2.8 9 2.4 10.5 2.4 12s.4 3 1.1 4.3l3.2-2.4C6.4 13.3 6.3 12.7 6.3 12s.1-1.3.4-1.9z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M12 6.4c1.3 0 2.4.4 3.3 1.2l2.5-2.5C16.2 3.6 14.3 2.8 12 2.8 8.3 2.8 5.1 4.7 3.5 7.7l3.2 2.4C7.2 7.7 9 6.4 12 6.4z"
-                />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 16 16"><g fill="none" fillRule="evenodd" clipRule="evenodd"><path fill="#f44336" d="M7.209 1.061c.725-.081 1.154-.081 1.933 0a6.57 6.57 0 0 1 3.65 1.82a100 100 0 0 0-1.986 1.93q-1.876-1.59-4.188-.734q-1.696.78-2.362 2.528a78 78 0 0 1-2.148-1.658a.26.26 0 0 0-.16-.027q1.683-3.245 5.26-3.86" opacity=".987" /><path fill="#ffc107" d="M1.946 4.92q.085-.013.161.027a78 78 0 0 0 2.148 1.658A7.6 7.6 0 0 0 4.04 7.99q.037.678.215 1.331L2 11.116Q.527 8.038 1.946 4.92" opacity=".997" /><path fill="#448aff" d="M12.685 13.29a26 26 0 0 0-2.202-1.74q1.15-.812 1.396-2.228H8.122V6.713q3.25-.027 6.497.055q.616 3.345-1.423 6.032a7 7 0 0 1-.51.49" opacity=".999" /><path fill="#43a047" d="M4.255 9.322q1.23 3.057 4.51 2.854a3.94 3.94 0 0 0 1.718-.626q1.148.812 2.202 1.74a6.62 6.62 0 0 1-4.027 1.684a6.4 6.4 0 0 1-1.02 0Q3.82 14.524 2 11.116z" opacity=".993" /></g></svg>
               Login with Google
             </Button>
           </div>
