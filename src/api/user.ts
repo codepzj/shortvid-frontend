@@ -1,4 +1,5 @@
 import request from "@/utils/request";
+import type { AxiosResponse } from "axios";
 
 // Firebase登录请求接口
 export interface LoginFirebaseRequest {
@@ -6,23 +7,51 @@ export interface LoginFirebaseRequest {
 }
 
 // Firebase登录响应接口
-export type LoginFirebaseResponse = Record<string, never>;
+export interface LoginFirebaseResponse {
+  access_token: string;
+  refresh_token: string;
+  user: UserProfile;
+}
+
+// github登录请求接口
+export interface GithubLoginRequest {
+  code: string;
+}
+
+// github登录响应接口
+export interface LoginGithubResponse {
+  access_token: string;
+  refresh_token: string;
+  user: UserProfile;
+}
+
+// 用户资料接口
+export interface UserProfile {
+  id: number;
+  uid: number;
+  nickname: string;
+  avatar: string;
+  email: string;
+  provider: string;
+  provider_uid: string;
+}
 
 // 获取用户信息请求接口
-export interface GetUserRequest {
-  id: number;
+export interface GetUserProfileRequest {
+  uid: number;
 }
 
 // 获取用户信息响应接口
-export interface GetUserResponse {
-  nickname: string;
-  avatar?: string;
-  email?: string;
-  provider: string;
-  providerUid: string;
+export interface GetUserProfileResponse {
+  user: UserProfile;
 }
 
 // firebase登录接口
-export const firebaseLoginAPI = (id_token: string): Promise<LoginFirebaseResponse> => {
-  return request.post("/firebase/login", { id_token });
+export const firebaseLoginAPI = async (dto: LoginFirebaseRequest): Promise<AxiosResponse<LoginFirebaseResponse>> => {
+  return request.post<LoginFirebaseResponse>("/api/v1/firebase/login", dto);
+};
+
+// github登录接口
+export const githubLoginAPI = async (dto: GithubLoginRequest): Promise<AxiosResponse<LoginGithubResponse>> => {
+  return request.post<LoginGithubResponse>("/api/v1/github/login", dto);
 };

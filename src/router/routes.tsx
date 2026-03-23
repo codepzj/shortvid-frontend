@@ -1,7 +1,8 @@
 import { lazy } from "react";
 
 const Home = lazy(() => import("@/pages/home"));
-import LoginPage from "@/pages/user/login";
+import LoginPage from "@/pages/user/login/login";
+import GithubCallback from "@/pages/user/login/callback/github";
 
 export interface RouteConfig {
   path: string;
@@ -30,4 +31,9 @@ export const routes: RouteConfig[] = [
     name: "Login",
     component: () => <LoginPage />,
   },
+  {
+    path: "/login/github/callback",
+    name: "GithubCallback",
+    component: () => <GithubCallback />,
+  }
 ];

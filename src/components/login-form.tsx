@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "@/third_party/firebase";
 import { LoginGithub } from "@/third_party/github";
-import { firebaseLoginAPI } from "@/api/user";
+import { firebaseLoginAPI, type LoginFirebaseRequest } from "@/api/user";
+import { useUserStore } from "@/store/user";
+import { useEffect } from "react";
 
 interface LoginFormProps extends Omit<
   React.ComponentProps<"form">,
@@ -21,25 +23,34 @@ interface LoginFormProps extends Omit<
 }
 
 export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProps) {
+  const { user, setUser } = useUserStore();
+
+  useEffect(() => {
+    console.log("user:", user);
+  }, [user]);
+
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
 
-      await firebaseLoginAPI(idToken);
+      const dto: LoginFirebaseRequest = {
+        id_token: idToken,
+      }
 
-      const userInfo = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        providerId: result.providerId,
-      };
-      localStorage.setItem("user", JSON.stringify(userInfo));
+      try {
+        const { data } = await firebaseLoginAPI(dto);
+        console.log(data)
+        const { user } = data;
+        console.log("firebase login success:", user);
+        setUser(user);
+        onLoginSuccess?.();
+      } catch (error) {
+        console.error("firebase login failed:", error);
+      }
 
-      onLoginSuccess?.();
     } catch (error) {
-      console.error("Google 登录失败:", error);
+      console.error("google login failed:", error);
     }
   };
 
