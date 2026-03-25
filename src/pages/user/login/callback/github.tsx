@@ -10,13 +10,19 @@ export default function GithubCallback() {
 
   useEffect(() => {
     const fetchGithubLogin = async () => {
-      if (code) {
-        const dto: GithubLoginRequest = {
-          code: code,
-        };
+      if (!code) return;
+      try {
+        const dto: GithubLoginRequest = { code };
         const { data } = await githubLoginAPI(dto);
-        const { user } = data;
+        const user = data?.user;
+
+        if (!user) {
+          return;
+        }
+
         setUser(user);
+      } catch {
+        console.error("github login failed");
       }
     };
     fetchGithubLogin();
