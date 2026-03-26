@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { useRoutes, Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/auth-context";
 import { routes } from "./routes";
 import type { RouteConfig } from "./routes";
 import { Spinner } from "@/components/loading";
@@ -42,7 +41,8 @@ function createRouteElement(
 }
 
 function RouterRenderer() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  const isLoading = false;
 
   const routeElements = routes.map((route) => ({
     path: route.path,

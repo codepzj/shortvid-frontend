@@ -1,32 +1,22 @@
-import { create } from 'zustand'
-import type { UserProfile } from '@/api/user';
-import { persist,createJSONStorage } from 'zustand/middleware'
-
-
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { UserProfile } from "@/api/user";
 
 type UserStore = {
-  user: UserProfile;
+  user: UserProfile | null;
   setUser: (user: UserProfile) => void;
-}
-
-const initialUser: UserProfile = {
-  id: 0,
-  uid: 0,
-  nickname: '',
-  avatar: '',
-  email: '',
-  provider: '',
-  provider_uid: '',
-}
+  clearUser: () => void;
+};
 
 export const useUserStore = create<UserStore>()(
   persist(
     (set) => ({
-      user: initialUser,
+      user: null,
       setUser: (user: UserProfile) => set({ user }),
+      clearUser: () => set({ user: null }),
     }),
     {
-      name: 'user',
+      name: "user",
       storage: createJSONStorage(() => localStorage),
     }
   )

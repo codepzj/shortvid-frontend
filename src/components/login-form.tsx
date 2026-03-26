@@ -13,21 +13,16 @@ import { auth, provider } from "@/third_party/firebase";
 import { LoginGithub } from "@/third_party/github";
 import { firebaseLoginAPI, type LoginFirebaseRequest } from "@/api/user";
 import { useUserStore } from "@/store/user";
-import { useEffect } from "react";
 
 interface LoginFormProps extends Omit<
   React.ComponentProps<"form">,
   "onSubmit"
 > {
-  onLoginSuccess?: () => void;
+  onLoginSuccess: () => void;
 }
 
 export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProps) {
-  const { user, setUser } = useUserStore();
-
-  useEffect(() => {
-    console.log("user:", user);
-  }, [user]);
+  const { setUser, clearUser } = useUserStore();
 
   const handleGoogleLogin = async () => {
     try {
@@ -40,23 +35,24 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
 
       try {
         const { data } = await firebaseLoginAPI(dto);
-        console.log(data)
         const { user } = data;
-        console.log("firebase login success:", user);
         setUser(user);
+        localStorage.setItem("isAuthenticated", "true");
         onLoginSuccess?.();
       } catch (error) {
         console.error("firebase login failed:", error);
+        clearUser();
       }
 
     } catch (error) {
       console.error("google login failed:", error);
+      clearUser();
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLoginSuccess?.();
+    onLoginSuccess();
   };
 
   return (

@@ -2,11 +2,10 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { LoginForm } from "@/components/login-form";
-import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
 
   // 已登录用户访问登录页时重定向到首页
   if (isAuthenticated) {
@@ -14,7 +13,7 @@ export default function LoginPage() {
   }
 
   const handleLoginSuccess = () => {
-    login();
+    localStorage.setItem("isAuthenticated", "true");
     navigate("/home", { replace: true });
   };
 
