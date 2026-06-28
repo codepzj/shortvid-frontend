@@ -1,22 +1,10 @@
-import { useNavigate, Navigate } from "react-router-dom";
 import { GalleryVerticalEnd } from "lucide-react";
 
-import { LoginForm } from "@/components/login-form";
+type LoginLayoutProps = {
+  children: React.ReactNode;
+};
 
-export default function LoginPage() {
-  const navigate = useNavigate();
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-
-  // 已登录用户访问登录页时重定向到首页
-  if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
-  }
-
-  const handleLoginSuccess = () => {
-    localStorage.setItem("isAuthenticated", "true");
-    navigate("/home", { replace: true });
-  };
-
+export function LoginLayout({ children }: LoginLayoutProps) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
@@ -29,9 +17,7 @@ export default function LoginPage() {
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <LoginForm onLoginSuccess={handleLoginSuccess} />
-          </div>
+          <div className="w-full max-w-xs">{children}</div>
         </div>
       </div>
       <div className="relative hidden bg-muted lg:block">

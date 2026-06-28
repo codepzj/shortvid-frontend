@@ -1,8 +1,9 @@
-import { Suspense } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 import { useRoutes, Navigate } from "react-router-dom";
 import { routes } from "./routes";
 import type { RouteConfig } from "./routes";
-import { Spinner } from "@/components/loading";
+import { Spinner } from "@/components/ui/spinner";
+import { useIsAuthenticated, useUserStore } from "@/store/user";
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-white flex items-center justify-center">
@@ -40,9 +41,18 @@ function createRouteElement(
   return <Component />;
 }
 
+function useUserStoreHydrated() {
+  return useSyncExternalStore(
+    (onStoreChange) => useUserStore.persist.onFinishHydration(onStoreChange),
+    () => useUserStore.persist.hasHydrated(),
+    () => false,
+  );
+}
+
 function RouterRenderer() {
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-  const isLoading = false;
+  const isAuthenticated = useIsAuthenticated();
+  const hydrated = useUserStoreHydrated();
+  const isLoading = !hydrated;
 
   const routeElements = routes.map((route) => ({
     path: route.path,

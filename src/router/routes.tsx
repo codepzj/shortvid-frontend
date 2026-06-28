@@ -1,8 +1,8 @@
 import { lazy } from "react";
 
-const Home = lazy(() => import("@/pages/home"));
-import LoginPage from "@/pages/user/login/login";
-import GithubCallback from "@/pages/user/login/callback/github";
+const HomePage = lazy(() => import("@/pages/home"));
+const LoginPage = lazy(() => import("@/pages/login"));
+const GithubCallbackPage = lazy(() => import("@/pages/login/github-callback"));
 
 export interface RouteConfig {
   path: string;
@@ -23,17 +23,17 @@ export const routes: RouteConfig[] = [
   {
     path: "/home",
     name: "Home",
-    component: Home,
+    component: HomePage,
     meta: { requiresAuth: true },
   },
   {
     path: "/login",
     name: "Login",
-    component: () => <LoginPage />,
+    component: LoginPage,
   },
   {
     path: "/login/github/callback",
     name: "GithubCallback",
-    component: () => <GithubCallback />,
-  }
+    component: GithubCallbackPage,
+  },
 ];
