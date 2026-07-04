@@ -3,6 +3,7 @@ import { lazy } from "react";
 const HomePage = lazy(() => import("@/pages/home"));
 const LoginPage = lazy(() => import("@/pages/login"));
 const GithubCallbackPage = lazy(() => import("@/pages/login/github-callback"));
+const GiteeCallbackPage = lazy(() => import("@/pages/login/gitee-callback"));
 
 export interface RouteConfig {
   path: string;
@@ -35,5 +36,10 @@ export const routes: RouteConfig[] = [
     path: "/login/github/callback",
     name: "GithubCallback",
     component: GithubCallbackPage,
+  },
+  {
+    path: "/login/gitee/callback",
+    name: "GiteeCallback",
+    component: GiteeCallbackPage,
   },
 ];

@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button";
 
 type OAuthButtonsProps = {
   onGitHubLogin: () => void;
+  onGiteeLogin: () => void;
   onGoogleLogin: () => void;
 };
 
-export function OAuthButtons({ onGitHubLogin, onGoogleLogin }: OAuthButtonsProps) {
+export function OAuthButtons({ onGitHubLogin, onGiteeLogin, onGoogleLogin }: OAuthButtonsProps) {
   return (
     <div className="flex flex-col gap-2">
       <Button variant="outline" type="button" className="w-full" onClick={onGitHubLogin}>
@@ -16,6 +17,21 @@ export function OAuthButtons({ onGitHubLogin, onGoogleLogin }: OAuthButtonsProps
           />
         </svg>
         Login with GitHub
+      </Button>
+      <Button
+        variant="outline"
+        type="button"
+        className="w-full flex items-center justify-center gap-2"
+        onClick={onGiteeLogin}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="11" fill="#c71d23" />
+          <path
+            d="M7.25 6.75h7.25a4.25 4.25 0 0 1 0 8.5h-3.75v-2.5h3.75a1.75 1.75 0 1 0 0-3.5H9.75v8H7.25z"
+            fill="#fff"
+          />
+        </svg>
+        Login with Gitee
       </Button>
       <Button
         variant="outline"

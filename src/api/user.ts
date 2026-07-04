@@ -25,6 +25,18 @@ export interface LoginGithubResponse {
   user: UserProfile;
 }
 
+// gitee登录请求接口
+export interface GiteeLoginRequest {
+  code: string;
+}
+
+// gitee登录响应接口
+export interface LoginGiteeResponse {
+  access_token: string;
+  refresh_token: string;
+  user: UserProfile;
+}
+
 // 用户资料接口
 export interface UserProfile {
   id: number;
@@ -48,10 +60,15 @@ export interface GetUserProfileResponse {
 
 // firebase登录接口
 export const firebaseLoginAPI = async (dto: LoginFirebaseRequest): Promise<AxiosResponse<LoginFirebaseResponse>> => {
-  return request.post<LoginFirebaseResponse>("/api/v1/firebase/login", dto);
+  return request.post<LoginFirebaseResponse>("/api/v1/user/firebase/login", dto);
 };
 
 // github登录接口
 export const githubLoginAPI = async (dto: GithubLoginRequest): Promise<AxiosResponse<LoginGithubResponse>> => {
-  return request.post<LoginGithubResponse>("/api/v1/github/login", dto);
+  return request.post<LoginGithubResponse>("/api/v1/user/github/login", dto);
+};
+
+// gitee登录接口
+export const giteeLoginAPI = async (dto: GiteeLoginRequest): Promise<AxiosResponse<LoginGiteeResponse>> => {
+  return request.post<LoginGiteeResponse>("/api/v1/user/gitee/login", dto);
 };

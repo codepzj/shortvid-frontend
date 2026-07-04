@@ -13,8 +13,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/v1': {
-        target: "http://localhost:8000", // 开发环境后端地址
+      '/api/v1/user': {
+        target: "http://localhost:8001", // 开发环境用户服务地址
         changeOrigin: true,
       },
     },

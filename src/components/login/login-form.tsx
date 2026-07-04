@@ -3,6 +3,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "@/third_party/firebase";
 import { LoginGithub } from "@/third_party/github";
+import { LoginGitee } from "@/third_party/gitee";
 import { firebaseLoginAPI, type LoginFirebaseRequest } from "@/api/user";
 import { useUserStore } from "@/store/user";
 import { OAuthButtons } from "./oauth-buttons";
@@ -44,6 +45,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
         <Field>
           <OAuthButtons
             onGitHubLogin={LoginGithub}
+            onGiteeLogin={LoginGitee}
             onGoogleLogin={handleGoogleLogin}
           />
         </Field>
