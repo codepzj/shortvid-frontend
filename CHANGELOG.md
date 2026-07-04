@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/codepzj/shortvid-frontend/compare/v1.1.0...v1.2.0) (2026-07-04)
+
+
+### Features
+
+* 静态首页 ([104f674](https://github.com/codepzj/shortvid-frontend/commit/104f67467e93241b01d334b08c563c29b25333e4))
+
 # [1.1.0](https://github.com/codepzj/shortvid-frontend/compare/v1.0.0...v1.1.0) (2026-07-04)
 
 
