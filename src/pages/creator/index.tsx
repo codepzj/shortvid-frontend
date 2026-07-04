@@ -24,7 +24,8 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent, DragEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -71,17 +72,121 @@ const sidebarLinks = [
   { label: "创作设置", icon: Settings },
 ];
 
-const coverImages = [
-  "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=240&q=80",
-  "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=240&q=80",
-  "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=240&q=80",
-];
-
 const selectedTags = ["生活记录", "学习", "直播"];
 const recommendTags = ["生活记录", "科技", "学习", "音乐", "记录", "新人", "原创", "自用"];
 const topics = ["世界林科技坦白局", "万物研究所", "上B站看播客", "开麦聊体育", "分享我的专业知识", "高能量自律"];
 
-function FieldLabel({ children, required = false }: { children: React.ReactNode; required?: boolean }) {
+type UploadedVideo = {
+  file: File;
+  url: string;
+  name: string;
+  title: string;
+  sizeLabel: string;
+  durationLabel: string;
+  covers: string[];
+};
+
+function formatFileSize(size: number) {
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+  if (size < 1024 * 1024 * 1024) {
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
+  return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+function formatDuration(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "00:00";
+  }
+
+  const total = Math.round(seconds);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const restSeconds = total % 60;
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(restSeconds).padStart(2, "0");
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${mm}:${ss}`;
+  }
+  return `${mm}:${ss}`;
+}
+
+function fileNameToTitle(name: string) {
+  return name.replace(/\.[^.]+$/, "") || name;
+}
+
+function waitForVideoEvent(video: HTMLVideoElement, eventName: "loadedmetadata" | "seeked") {
+  return new Promise<void>((resolve, reject) => {
+    const handleSuccess = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error("视频读取失败，请换一个视频试试"));
+    };
+    const cleanup = () => {
+      video.removeEventListener(eventName, handleSuccess);
+      video.removeEventListener("error", handleError);
+    };
+
+    video.addEventListener(eventName, handleSuccess, { once: true });
+    video.addEventListener("error", handleError, { once: true });
+  });
+}
+
+async function readVideoFile(file: File): Promise<UploadedVideo> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+
+  video.preload = "metadata";
+  video.muted = true;
+  video.playsInline = true;
+  video.src = url;
+
+  await waitForVideoEvent(video, "loadedmetadata");
+
+  const canvas = document.createElement("canvas");
+  const width = video.videoWidth || 1280;
+  const height = video.videoHeight || 720;
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    URL.revokeObjectURL(url);
+    throw new Error("当前浏览器不支持生成视频封面");
+  }
+
+  const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+  const captureTimes = duration > 2 ? [duration * 0.1, duration * 0.5, duration * 0.9] : [Math.min(duration / 2, 0.1)];
+  const covers: string[] = [];
+
+  for (const time of captureTimes) {
+    const targetTime = Math.min(Math.max(time, 0), Math.max(duration - 0.1, 0));
+    if (Math.abs(video.currentTime - targetTime) > 0.01) {
+      video.currentTime = targetTime;
+      await waitForVideoEvent(video, "seeked");
+    }
+    context.drawImage(video, 0, 0, width, height);
+    covers.push(canvas.toDataURL("image/jpeg", 0.86));
+  }
+
+  return {
+    file,
+    url,
+    name: file.name,
+    title: fileNameToTitle(file.name),
+    sizeLabel: formatFileSize(file.size),
+    durationLabel: formatDuration(duration),
+    covers,
+  };
+}
+
+function FieldLabel({ children, required = false }: { children: ReactNode; required?: boolean }) {
   return (
     <div className="w-24 shrink-0 pt-2 text-sm text-zinc-700">
       {required ? <span className="mr-1 text-red-500">*</span> : null}
@@ -90,7 +195,7 @@ function FieldLabel({ children, required = false }: { children: React.ReactNode;
   );
 }
 
-function SelectLike({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function SelectLike({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <button
       type="button"
@@ -102,19 +207,59 @@ function SelectLike({ children, className = "" }: { children: React.ReactNode; c
   );
 }
 
-function UploadEntry({ onUploaded }: { onUploaded: () => void }) {
+function UploadEntry({ onVideoSelected }: { onVideoSelected: (file: File) => Promise<void> }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isReading, setIsReading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      setError("请选择视频文件");
+      return;
+    }
+
+    setError("");
+    setIsReading(true);
+    try {
+      await onVideoSelected(file);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "视频读取失败");
+    } finally {
+      setIsReading(false);
+    }
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void handleFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    void handleFile(event.dataTransfer.files?.[0]);
+  };
+
   return (
     <div className="px-16 py-16">
-      <div className="grid min-h-[426px] place-items-center rounded-lg bg-zinc-50">
+      <div
+        className="grid min-h-[426px] place-items-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 transition hover:border-sky-300 hover:bg-sky-50/40"
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
+      >
         <div className="flex flex-col items-center text-center">
           <CloudUpload className="size-24 text-zinc-200" strokeWidth={1.4} />
           <p className="mt-4 text-sm text-zinc-400">点击上传或将视频拖拽到此区域</p>
+          <p className="mt-2 text-xs text-zinc-400">支持 MP4、MOV、MKV 等浏览器可预览的视频格式</p>
           <Button
             className="mt-7 h-12 w-[304px] rounded-md bg-sky-500 text-base text-white hover:bg-sky-400"
-            onClick={onUploaded}
+            disabled={isReading}
+            onClick={() => inputRef.current?.click()}
           >
-            上传视频
+            {isReading ? "正在读取视频..." : "上传视频"}
           </Button>
+          {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
+          <input ref={inputRef} className="hidden" type="file" accept="video/*" onChange={handleInputChange} />
         </div>
       </div>
 
@@ -136,7 +281,34 @@ function UploadEntry({ onUploaded }: { onUploaded: () => void }) {
   );
 }
 
-function PublishForm() {
+function PublishForm({
+  selectedCover,
+  video,
+  onCoverSelect,
+  onReplaceVideo,
+}: {
+  selectedCover: string;
+  video: UploadedVideo;
+  onCoverSelect: (cover: string) => void;
+  onReplaceVideo: (file: File) => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [title, setTitle] = useState(video.title);
+  const [isReplacing, setIsReplacing] = useState(false);
+
+  const handleReplace = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsReplacing(true);
+    try {
+      await onReplaceVideo(file);
+    } finally {
+      setIsReplacing(false);
+    }
+  };
+
   return (
     <div className="border-t border-zinc-100">
       <div className="flex h-[72px] items-center justify-between border-b border-zinc-100 px-8">
@@ -150,10 +322,10 @@ function PublishForm() {
         <section className="rounded-lg bg-zinc-50 p-3">
           <div className="flex gap-3">
             <div className="flex h-[60px] w-52 flex-col justify-center rounded-md bg-sky-500 px-3 text-white">
-              <span>SVID_20260104_152717_1</span>
-              <span className="mt-1 text-xs text-white/90">上传完成</span>
+              <span className="truncate">{video.title}</span>
+              <span className="mt-1 text-xs text-white/90">{video.sizeLabel} · {video.durationLabel}</span>
             </div>
-            <button className="flex h-[60px] w-24 flex-col items-center justify-center rounded-md bg-white text-sm text-zinc-500" type="button">
+            <button className="flex h-[60px] w-24 flex-col items-center justify-center rounded-md bg-white text-sm text-zinc-500" type="button" onClick={() => inputRef.current?.click()}>
               <Plus className="size-4" />
               添加视频
             </button>
@@ -169,14 +341,15 @@ function PublishForm() {
               <Video className="size-5 fill-current" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-zinc-700">SVID_20260104_152717_1</p>
-              <p className="mt-1 text-xs text-emerald-500">上传完成</p>
+              <p className="truncate text-sm text-zinc-700">{video.name}</p>
+              <p className="mt-1 text-xs text-emerald-500">上传完成 · {video.sizeLabel} · {video.durationLabel}</p>
               <div className="mt-2 h-0.5 w-full max-w-[790px] bg-emerald-500" />
             </div>
-            <button className="mr-28 flex items-center gap-2 text-sm text-sky-500" type="button">
+            <button className="mr-28 flex items-center gap-2 text-sm text-sky-500 disabled:text-zinc-400" type="button" disabled={isReplacing} onClick={() => inputRef.current?.click()}>
               <RotateCcw className="size-5" />
-              更换视频
+              {isReplacing ? "读取中..." : "更换视频"}
             </button>
+            <input ref={inputRef} className="hidden" type="file" accept="video/*" onChange={handleReplace} />
           </div>
         </section>
 
@@ -193,14 +366,21 @@ function PublishForm() {
               <FieldLabel required>封面</FieldLabel>
               <div>
                 <div className="relative h-[108px] w-[144px] overflow-hidden rounded-sm bg-zinc-200">
-                  <img src={coverImages[0]} alt="封面预览" className="size-full object-cover" />
+                  <img src={selectedCover} alt="封面预览" className="size-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 bg-black/55 py-2 text-center text-sm text-white">封面设置</div>
                 </div>
                 <div className="mt-4 rounded-md bg-zinc-50 p-3">
                   <p className="text-sm text-zinc-700">系统默认选中第一张为封面，以下为更多封面推荐</p>
                   <div className="mt-3 flex gap-2">
-                    {coverImages.map((image) => (
-                      <img key={image} src={image} alt="推荐封面" className="h-[78px] w-[100px] rounded-sm object-cover" />
+                    {video.covers.map((image, index) => (
+                      <button
+                        key={image}
+                        type="button"
+                        className={`overflow-hidden rounded-sm border-2 ${selectedCover === image ? "border-sky-500" : "border-transparent"}`}
+                        onClick={() => onCoverSelect(image)}
+                      >
+                        <img src={image} alt={`推荐封面 ${index + 1}`} className="h-[78px] w-[100px] object-cover" />
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -210,8 +390,13 @@ function PublishForm() {
             <div className="flex items-center">
               <FieldLabel required>标题</FieldLabel>
               <div className="flex h-10 w-full max-w-[746px] items-center rounded-sm border border-zinc-300 bg-white px-3">
-                <input className="min-w-0 flex-1 bg-transparent text-sm outline-none" defaultValue="SVID_20260104_152717_1" />
-                <span className="text-sm text-zinc-400">22/80</span>
+                <input
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  maxLength={80}
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+                <span className="text-sm text-zinc-400">{title.length}/80</span>
               </div>
             </div>
 
@@ -327,7 +512,31 @@ function PublishForm() {
 }
 
 export default function CreatorPage() {
-  const [uploaded, setUploaded] = useState(false);
+  const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
+  const [selectedCover, setSelectedCover] = useState("");
+
+  const handleVideoSelected = async (file: File) => {
+    if (!file.type.startsWith("video/")) {
+      throw new Error("请选择视频文件");
+    }
+
+    const nextVideo = await readVideoFile(file);
+    setUploadedVideo((currentVideo) => {
+      if (currentVideo) {
+        URL.revokeObjectURL(currentVideo.url);
+      }
+      return nextVideo;
+    });
+    setSelectedCover(nextVideo.covers[0] ?? "");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (uploadedVideo) {
+        URL.revokeObjectURL(uploadedVideo.url);
+      }
+    };
+  }, [uploadedVideo]);
 
   return (
     <main className="min-h-screen bg-[#f6f7f8] text-zinc-900">
@@ -449,7 +658,17 @@ export default function CreatorPage() {
               })}
             </div>
 
-            {uploaded ? <PublishForm /> : <UploadEntry onUploaded={() => setUploaded(true)} />}
+            {uploadedVideo ? (
+              <PublishForm
+                key={uploadedVideo.url}
+                selectedCover={selectedCover}
+                video={uploadedVideo}
+                onCoverSelect={setSelectedCover}
+                onReplaceVideo={handleVideoSelected}
+              />
+            ) : (
+              <UploadEntry onVideoSelected={handleVideoSelected} />
+            )}
           </div>
         </section>
       </div>
