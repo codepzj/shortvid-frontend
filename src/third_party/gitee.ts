@@ -8,7 +8,7 @@ export function LoginGitee() {
     client_id: clientId,
     response_type: "code",
     redirect_uri: redirectUri,
-    scope: "user_info emails",
+    scope: "user_info",
   });
 
   window.location.assign(`https://gitee.com/oauth/authorize?${params.toString()}`);
