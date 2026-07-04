@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/codepzj/shortvid-frontend/compare/v1.3.1...v1.4.0) (2026-07-04)
+
+
+### Features
+
+* 添加真实上传的视频 ([0943392](https://github.com/codepzj/shortvid-frontend/commit/0943392e76cda796cd751b52f09bd880b18c5114))
+* 添加类似B站的静态页面 ([86ef385](https://github.com/codepzj/shortvid-frontend/commit/86ef385c877db3e8b3eb15cde8a9c5172017f0ef))
+
 ## [1.3.1](https://github.com/codepzj/shortvid-frontend/compare/v1.3.0...v1.3.1) (2026-07-04)
 
 
