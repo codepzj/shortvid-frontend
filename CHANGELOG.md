@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/codepzj/shortvid-frontend/compare/v1.0.0...v1.1.0) (2026-07-04)
+
+
+### Bug Fixes
+
+* stabilize oauth callback handling ([3e465b0](https://github.com/codepzj/shortvid-frontend/commit/3e465b0e781004d9a21cb8646ad4413608ab8a0b))
+* 修复权限问题 ([e065129](https://github.com/codepzj/shortvid-frontend/commit/e06512936d7a9383070815d6f44d4a4ad94e8f2e))
+
+
+### Features
+
+* 添加gitee登录方式 ([5828c6d](https://github.com/codepzj/shortvid-frontend/commit/5828c6d64a6ec6f9c2bd3705890618de260d8ace))
+
 # 1.0.0 (2026-06-28)
 
 
