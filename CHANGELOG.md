@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/codepzj/shortvid-frontend/compare/v1.3.0...v1.3.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* 修复打包问题 ([5c12840](https://github.com/codepzj/shortvid-frontend/commit/5c12840da740e67b730b7dbb01fd1bdd06c2059e))
+
 # [1.3.0](https://github.com/codepzj/shortvid-frontend/compare/v1.2.0...v1.3.0) (2026-07-04)
 
 
