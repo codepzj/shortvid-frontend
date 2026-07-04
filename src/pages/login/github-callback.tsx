@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   githubLoginAPI,
@@ -12,9 +12,11 @@ export default function GithubCallbackPage() {
   const [searchParams] = useSearchParams();
   const code = searchParams.get("code");
   const setAuth = useUserStore((state) => state.setAuth);
+  const loginRequestedRef = useRef(false);
 
   useEffect(() => {
-    if (!code) return;
+    if (!code || loginRequestedRef.current) return;
+    loginRequestedRef.current = true;
 
     const dto: GithubLoginRequest = { code };
     githubLoginAPI(dto)
