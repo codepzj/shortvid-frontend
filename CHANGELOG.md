@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/codepzj/shortvid-frontend/compare/v1.2.0...v1.3.0) (2026-07-04)
+
+
+### Features
+
+* CI添加环境变量 ([5972c43](https://github.com/codepzj/shortvid-frontend/commit/5972c434c251739c72dbb46167d46fdcc8bdc05f))
+
 # [1.2.0](https://github.com/codepzj/shortvid-frontend/compare/v1.1.0...v1.2.0) (2026-07-04)
 
 
