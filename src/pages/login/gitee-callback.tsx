@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   giteeLoginAPI,
   type GiteeLoginRequest,
-  type LoginGiteeResponse,
-} from "@/api/user";
+} from "@/api";
 import { useUserStore } from "@/store/user";
 
 export default function GiteeCallbackPage() {
@@ -21,8 +20,7 @@ export default function GiteeCallbackPage() {
     const dto: GiteeLoginRequest = { code };
     giteeLoginAPI(dto)
       .then((res) => {
-        const payload = (res as { data?: LoginGiteeResponse }).data ?? res;
-        const { access_token, refresh_token, user } = payload as LoginGiteeResponse;
+        const { access_token, refresh_token, user } = res.data;
         if (!user) return;
 
         setAuth({ user, access_token, refresh_token });

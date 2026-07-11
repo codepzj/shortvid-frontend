@@ -12,8 +12,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Link } from "react-router-dom";
-import { AwsClient } from "aws4fetch";
-import { md5 } from "js-md5";
 import {
   Attachment,
   AttachmentContent,
@@ -24,8 +22,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { GetUploadSessionResponse } from "@/api/upload";
-import { getUploadSessionAPI } from "@/api/upload";
+import {
+  getUploadSessionAPI,
+  type GetUploadSessionResponse,
+} from "@/api";
+import { uploadObjectToS3 } from "@/third_party/s3";
+import type { S3UploadedObject, S3UploadSession } from "@/third_party/s3";
+import { generateVgroup } from "@/third_party/vgroup";
 
 type UploadedVideo = {
   file: File;
@@ -35,27 +38,11 @@ type UploadedVideo = {
   durationLabel: string;
 };
 
-type UploadSession = {
-  accessKey: string;
-  secretKey: string;
-  token: string;
-  bucket: string;
-  path: string;
-  vgroup: string;
-};
-
 type UploadStep = "video" | "details";
 type UploadStatus = "idle" | "reading" | "session" | "uploading" | "done" | "error";
 
-type UploadedObject = {
-  bucket: string;
-  path: string;
-  vgroup: string;
-};
-
 const selectedTags = ["生活记录", "学习", "直播"];
 const recommendedTags = ["生活记录", "科技", "学习", "音乐", "记录", "新人", "原创", "自用"];
-const VGROUP_HASH_SIZE = 10 * 1024 * 1024;
 
 function formatFileSize(size: number) {
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
@@ -78,92 +65,6 @@ function formatDuration(seconds: number) {
 
 function titleFromFileName(name: string) {
   return name.replace(/\.[^.]+$/, "") || name;
-}
-
-async function generateVgroup(file: File) {
-  const hashSource = await file.slice(0, VGROUP_HASH_SIZE).arrayBuffer();
-  return `${md5(hashSource)}_${file.size}`;
-}
-
-function getS3Config() {
-  const endpoint = import.meta.env.VITE_S3_ENDPOINT;
-  if (!endpoint) throw new Error("缺少 S3 上传配置 VITE_S3_ENDPOINT");
-
-  return {
-    endpoint: endpoint.replace(/\/+$/, ""),
-    region: import.meta.env.VITE_S3_REGION || "auto",
-    usePathStyle: import.meta.env.VITE_S3_USE_PATH_STYLE === "true",
-  };
-}
-
-function encodeS3Key(path: string) {
-  return path.split("/").map(encodeURIComponent).join("/");
-}
-
-function buildS3ObjectUrl(session: UploadSession) {
-  const { endpoint, usePathStyle } = getS3Config();
-  const key = encodeS3Key(session.path);
-
-  if (usePathStyle) return `${endpoint}/${encodeURIComponent(session.bucket)}/${key}`;
-
-  const endpointUrl = new URL(endpoint);
-  endpointUrl.hostname = `${session.bucket}.${endpointUrl.hostname}`;
-  endpointUrl.pathname = `${endpointUrl.pathname.replace(/\/+$/, "")}/${key}`;
-  return endpointUrl.toString();
-}
-
-async function uploadVideoToS3(
-  file: File,
-  session: UploadSession,
-  onProgress: (progress: number) => void,
-) {
-  const { region } = getS3Config();
-  const objectUrl = buildS3ObjectUrl(session);
-  const aws = new AwsClient({
-    accessKeyId: session.accessKey,
-    secretAccessKey: session.secretKey,
-    sessionToken: session.token,
-    region,
-    service: "s3",
-  });
-  const signedRequest = await aws.sign(objectUrl, {
-    method: "PUT",
-    body: file,
-    headers: {
-      "content-type": file.type || "application/octet-stream",
-    },
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", signedRequest.url);
-    signedRequest.headers.forEach((value, key) => {
-      if (key !== "host" && key !== "content-length") {
-        xhr.setRequestHeader(key, value);
-      }
-    });
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && event.total > 0) {
-        onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(100);
-        resolve();
-        return;
-      }
-      reject(new Error(`视频上传失败，状态码 ${xhr.status}`));
-    };
-    xhr.onerror = () => reject(new Error("视频上传失败，请检查对象存储配置和跨域设置"));
-    xhr.send(file);
-  });
-
-  return {
-    bucket: session.bucket,
-    path: session.path,
-    vgroup: session.vgroup,
-  };
 }
 
 function waitForVideo(video: HTMLVideoElement, eventName: "loadedmetadata" | "seeked") {
@@ -225,7 +126,7 @@ function getAttachmentState(status: UploadStatus) {
   return "processing";
 }
 
-function getUploadDescription(status: UploadStatus, progress: number, object?: UploadedObject | null) {
+function getUploadDescription(status: UploadStatus, progress: number, object?: S3UploadedObject | null) {
   if (status === "reading") return "正在读取视频信息";
   if (status === "session") return "正在获取上传凭证";
   if (status === "uploading") return `正在上传 ${progress}%`;
@@ -240,7 +141,7 @@ export default function UploadPage() {
   const uploadRequestRef = useRef(0);
   const [step, setStep] = useState<UploadStep>("video");
   const [video, setVideo] = useState<UploadedVideo | null>(null);
-  const [uploadedObject, setUploadedObject] = useState<UploadedObject | null>(null);
+  const [uploadedObject, setUploadedObject] = useState<S3UploadedObject | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [title, setTitle] = useState("");
@@ -305,7 +206,7 @@ export default function UploadPage() {
       const sessionResponse = await getUploadSessionAPI({ vgroup });
       if (requestId !== uploadRequestRef.current) return;
       const data: GetUploadSessionResponse = sessionResponse.data;
-      const nextSession: UploadSession = {
+      const nextSession: S3UploadSession = {
         accessKey: data.access_key,
         secretKey: data.secret_key,
         token: data.token,
@@ -315,7 +216,7 @@ export default function UploadPage() {
       };
       setIsSessionLoading(false);
       setUploadStatus("uploading");
-      const nextObject = await uploadVideoToS3(file, nextSession, (progress) => {
+      const nextObject = await uploadObjectToS3(file, nextSession, (progress) => {
         if (requestId === uploadRequestRef.current) {
           setUploadProgress(progress);
         }

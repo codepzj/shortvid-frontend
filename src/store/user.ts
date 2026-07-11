@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { UserProfile } from "@/api/user";
+import type { UserProfile } from "@/api";
 
 type AuthPayload = {
   user: UserProfile;

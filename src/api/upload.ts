@@ -1,11 +1,5 @@
 import request from "@/utils/request";
-
-type ApiResponse<T> = {
-  success: boolean;
-  code: number;
-  msg: string;
-  data: T;
-};
+import type { ApiResponse } from "./types";
 
 export type GetUploadSessionRequest = {
   vgroup: string;
@@ -22,7 +16,7 @@ export type GetUploadSessionResponse = {
 export const getUploadSessionAPI = async (
   dto: GetUploadSessionRequest,
 ): Promise<ApiResponse<GetUploadSessionResponse>> => {
-  return request.post<GetUploadSessionResponse, ApiResponse<GetUploadSessionResponse>>(
+  return request.post<ApiResponse<GetUploadSessionResponse>, ApiResponse<GetUploadSessionResponse>>(
     "/api/v1/upload/session",
     dto,
   );

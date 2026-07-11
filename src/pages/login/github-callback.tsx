@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   githubLoginAPI,
   type GithubLoginRequest,
-  type LoginGithubResponse,
-} from "@/api/user";
+} from "@/api";
 import { useUserStore } from "@/store/user";
 
 export default function GithubCallbackPage() {
@@ -21,8 +20,7 @@ export default function GithubCallbackPage() {
     const dto: GithubLoginRequest = { code };
     githubLoginAPI(dto)
       .then((res) => {
-        const payload = (res as { data?: LoginGithubResponse }).data ?? res;
-        const { access_token, refresh_token, user } = payload as LoginGithubResponse;
+        const { access_token, refresh_token, user } = res.data;
         if (!user) return;
 
         setAuth({ user, access_token, refresh_token });
