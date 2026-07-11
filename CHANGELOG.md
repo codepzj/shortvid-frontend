@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/codepzj/shortvid-frontend/compare/v1.4.1...v1.5.0) (2026-07-11)
+
+
+### Features
+
+* 完成视频上传功能 ([88d55a2](https://github.com/codepzj/shortvid-frontend/commit/88d55a2ed23a36f6a29abd60d4cbdd0baca7aaa1))
+
 ## [1.4.1](https://github.com/codepzj/shortvid-frontend/compare/v1.4.0...v1.4.1) (2026-07-11)
 
 
