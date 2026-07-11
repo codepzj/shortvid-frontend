@@ -1,7 +1,6 @@
 import {
   Captions,
   Home,
-  Play,
   Search,
   Sparkles,
   SquarePlay,
@@ -16,7 +15,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -115,19 +113,6 @@ export default function HomePage() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild size="lg" tooltip="VideoHub">
-                <Link to="/home">
-                  <Play className="translate-x-px fill-current" />
-                  <span className="font-semibold group-data-[collapsible=icon]:hidden">VideoHub</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>菜单</SidebarGroupLabel>

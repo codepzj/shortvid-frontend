@@ -4,7 +4,7 @@ import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "@/third_party/firebase";
 import { LoginGithub } from "@/third_party/github";
 import { LoginGitee } from "@/third_party/gitee";
-import { firebaseLoginAPI, type LoginFirebaseRequest } from "@/api/user";
+import { firebaseLoginAPI, type LoginFirebaseRequest } from "@/api";
 import { useUserStore } from "@/store/user";
 import { OAuthButtons } from "./oauth-buttons";
 

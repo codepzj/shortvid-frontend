@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import type { AxiosResponse } from "axios";
+import type { ApiResponse } from "./types";
 
 // Firebase登录请求接口
 export interface LoginFirebaseRequest {
@@ -59,16 +59,16 @@ export interface GetUserProfileResponse {
 }
 
 // firebase登录接口
-export const firebaseLoginAPI = async (dto: LoginFirebaseRequest): Promise<AxiosResponse<LoginFirebaseResponse>> => {
-  return request.post<LoginFirebaseResponse>("/api/v1/user/firebase/login", dto);
+export const firebaseLoginAPI = async (dto: LoginFirebaseRequest): Promise<ApiResponse<LoginFirebaseResponse>> => {
+  return request.post<ApiResponse<LoginFirebaseResponse>, ApiResponse<LoginFirebaseResponse>>("/api/v1/user/firebase/login", dto);
 };
 
 // github登录接口
-export const githubLoginAPI = async (dto: GithubLoginRequest): Promise<AxiosResponse<LoginGithubResponse>> => {
-  return request.post<LoginGithubResponse>("/api/v1/user/github/login", dto);
+export const githubLoginAPI = async (dto: GithubLoginRequest): Promise<ApiResponse<LoginGithubResponse>> => {
+  return request.post<ApiResponse<LoginGithubResponse>, ApiResponse<LoginGithubResponse>>("/api/v1/user/github/login", dto);
 };
 
 // gitee登录接口
-export const giteeLoginAPI = async (dto: GiteeLoginRequest): Promise<AxiosResponse<LoginGiteeResponse>> => {
-  return request.post<LoginGiteeResponse>("/api/v1/user/gitee/login", dto);
+export const giteeLoginAPI = async (dto: GiteeLoginRequest): Promise<ApiResponse<LoginGiteeResponse>> => {
+  return request.post<ApiResponse<LoginGiteeResponse>, ApiResponse<LoginGiteeResponse>>("/api/v1/user/gitee/login", dto);
 };
