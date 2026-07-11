@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/codepzj/shortvid-frontend/compare/v1.5.0...v1.6.0) (2026-07-11)
+
+
+### Features
+
+* 优化代码结构 ([185b197](https://github.com/codepzj/shortvid-frontend/commit/185b19763dc6c6016f2354acba42cc487b2fe7bb))
+
 # [1.5.0](https://github.com/codepzj/shortvid-frontend/compare/v1.4.1...v1.5.0) (2026-07-11)
 
 
