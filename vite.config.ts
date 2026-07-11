@@ -17,6 +17,10 @@ export default defineConfig({
         target: "http://localhost:8001", // 开发环境用户服务地址
         changeOrigin: true,
       },
+      '/api/v1/upload': {
+        target: "http://localhost:8000", // 开发环境短视频服务地址
+        changeOrigin: true,
+      },
     },
   },
 })

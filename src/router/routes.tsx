@@ -1,6 +1,7 @@
 import { lazy } from "react";
 
 const HomePage = lazy(() => import("@/pages/home"));
+const UploadPage = lazy(() => import("@/pages/upload"));
 const LoginPage = lazy(() => import("@/pages/login"));
 const GithubCallbackPage = lazy(() => import("@/pages/login/github-callback"));
 const GiteeCallbackPage = lazy(() => import("@/pages/login/gitee-callback"));
@@ -26,6 +27,16 @@ export const routes: RouteConfig[] = [
     name: "Home",
     component: HomePage,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/upload",
+    name: "Upload",
+    component: UploadPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/creator",
+    redirect: "/upload",
   },
   {
     path: "/login",

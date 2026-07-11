@@ -43,6 +43,9 @@ jobs:
           echo "VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}" >> .env.production
           echo "VITE_GITEE_CLIENT_ID=${{ secrets.VITE_GITEE_CLIENT_ID }}" >> .env.production
           echo "VITE_GITEE_REDIRECT_URI=${{ secrets.VITE_GITEE_REDIRECT_URI }}" >> .env.production
+          echo "VITE_S3_ENDPOINT=${{ secrets.VITE_S3_ENDPOINT }}" >> .env.production
+          echo "VITE_S3_REGION=${{ secrets.VITE_S3_REGION }}" >> .env.production
+          echo "VITE_S3_USE_PATH_STYLE=${{ secrets.VITE_S3_USE_PATH_STYLE }}" >> .env.production
 
       - name: Build
         run: pnpm build
