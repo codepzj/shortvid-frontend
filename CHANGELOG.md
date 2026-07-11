@@ -1,3 +1,11 @@
+## [1.4.1](https://github.com/codepzj/shortvid-frontend/compare/v1.4.0...v1.4.1) (2026-07-11)
+
+
+### Reverts
+
+* Revert "feat: 添加真实上传的视频" ([9375504](https://github.com/codepzj/shortvid-frontend/commit/9375504d12468a6e41900654ab8fc6b84d45d983))
+* Revert "feat: 添加类似B站的静态页面" ([91ae351](https://github.com/codepzj/shortvid-frontend/commit/91ae3513cf80184619e1c7566c21616ca22df006))
+
 # [1.4.0](https://github.com/codepzj/shortvid-frontend/compare/v1.3.1...v1.4.0) (2026-07-04)
 
 
