@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/codepzj/shortvid-frontend/compare/v1.6.0...v1.7.0) (2026-07-18)
+
+
+### Features
+
+* 添加断点续传和分片上传 ([7d7b053](https://github.com/codepzj/shortvid-frontend/commit/7d7b0530c5057e7e1225db227d85596675e663e5))
+
 # [1.6.0](https://github.com/codepzj/shortvid-frontend/compare/v1.5.0...v1.6.0) (2026-07-11)
 
 
