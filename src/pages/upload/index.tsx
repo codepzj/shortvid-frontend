@@ -5,7 +5,10 @@ import {
   CloudUpload,
   FileVideo,
   Loader2,
+  Pause,
+  Play,
   RotateCcw,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -21,13 +24,12 @@ import {
 } from "@/components/ui/attachment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  getUploadSessionAPI,
-  type GetUploadSessionResponse,
-} from "@/api";
-import { uploadObjectToS3 } from "@/third_party/s3";
-import type { S3UploadedObject, S3UploadSession } from "@/third_party/s3";
+import { useMultipartUpload } from "@/hooks/use-multipart-upload";
+import type { MultipartUploadStatus } from "@/hooks/use-multipart-upload";
+import { cn } from "@/lib/utils";
+import type { S3UploadedObject } from "@/third_party/s3";
 import { generateVgroup } from "@/third_party/vgroup";
 
 type UploadedVideo = {
@@ -39,7 +41,7 @@ type UploadedVideo = {
 };
 
 type UploadStep = "video" | "details";
-type UploadStatus = "idle" | "reading" | "session" | "uploading" | "done" | "error";
+type UploadStatus = MultipartUploadStatus | "reading";
 
 const selectedTags = ["生活记录", "学习", "直播"];
 const recommendedTags = ["生活记录", "科技", "学习", "音乐", "记录", "新人", "原创", "自用"];
@@ -122,16 +124,42 @@ function getAttachmentState(status: UploadStatus) {
   if (status === "error") return "error";
   if (status === "done") return "done";
   if (status === "uploading") return "uploading";
-  if (status === "idle") return "idle";
+  if (status === "idle" || status === "paused" || status === "cancelled") return "idle";
   return "processing";
 }
 
-function getUploadDescription(status: UploadStatus, progress: number, object?: S3UploadedObject | null) {
+function isProcessingStatus(status: UploadStatus) {
+  return (
+    status === "reading" ||
+    status === "session" ||
+    status === "preparing" ||
+    status === "uploading" ||
+    status === "retrying" ||
+    status === "completing" ||
+    status === "cancelling"
+  );
+}
+
+function getUploadDescription(
+  status: UploadStatus,
+  progress: number,
+  loadedBytes: number,
+  totalBytes: number,
+  object?: S3UploadedObject | null,
+) {
   if (status === "reading") return "正在读取视频信息";
   if (status === "session") return "正在获取上传凭证";
-  if (status === "uploading") return `正在上传 ${progress}%`;
+  if (status === "preparing") return "正在创建或恢复分片会话";
+  if (status === "retrying") return "上传凭证已过期，正在自动刷新";
+  if (status === "completing") return "分片已上传，正在合并视频";
+  if (status === "cancelling") return "正在取消分片上传";
+  if (status === "cancelled") return "上传已取消，可重新开始";
+  if (status === "paused") return `已暂停 · ${progress}%`;
+  if (status === "uploading") {
+    return `正在上传 ${progress}% · ${formatFileSize(loadedBytes)}/${formatFileSize(totalBytes)}`;
+  }
   if (status === "done" && object) return `上传成功 · ${object.path}`;
-  if (status === "error") return "上传失败";
+  if (status === "error") return "上传失败，可从已完成分片继续";
   return "等待选择视频";
 }
 
@@ -139,27 +167,33 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const uploadRequestRef = useRef(0);
+  const multipartUpload = useMultipartUpload();
   const [step, setStep] = useState<UploadStep>("video");
   const [video, setVideo] = useState<UploadedVideo | null>(null);
-  const [uploadedObject, setUploadedObject] = useState<S3UploadedObject | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [title, setTitle] = useState("");
   const [isReading, setIsReading] = useState(false);
-  const [isSessionLoading, setIsSessionLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
 
-  const isUploading = uploadStatus === "uploading";
-  const isBusy = isReading || isSessionLoading || isUploading;
+  const uploadStatus: UploadStatus = isReading ? "reading" : multipartUpload.status;
+  const uploadedObject = multipartUpload.uploadedObject;
+  const uploadProgress = multipartUpload.progress.progress;
+  const error = readError || multipartUpload.error;
+  const isBusy = isReading || multipartUpload.isActive;
   const canGoNext = Boolean(video && uploadedObject && uploadStatus === "done");
   const canPublish = Boolean(video && uploadedObject && step === "details");
   const uploadButtonText = isReading
     ? "正在读取视频..."
-    : isSessionLoading
-      ? "正在获取凭证..."
-      : isUploading
-        ? "正在上传视频..."
-        : "上传视频";
+    : multipartUpload.isActive
+      ? "正在分片上传..."
+      : "上传视频";
+  const showProgress = Boolean(video && multipartUpload.progress.totalBytes > 0 && uploadStatus !== "idle");
+  const canCancelUpload =
+    Boolean(video) &&
+    uploadStatus !== "idle" &&
+    uploadStatus !== "done" &&
+    uploadStatus !== "cancelled" &&
+    uploadStatus !== "cancelling" &&
+    uploadStatus !== "reading";
 
   useEffect(() => {
     return () => {
@@ -171,20 +205,19 @@ export default function UploadPage() {
     if (isBusy) return;
     if (!file) return;
     if (!file.type.startsWith("video/")) {
-      setError("请选择视频文件");
-      setUploadStatus("error");
+      setReadError("请选择视频文件");
       return;
     }
 
     const requestId = uploadRequestRef.current + 1;
     uploadRequestRef.current = requestId;
-    setError("");
+    if (video && multipartUpload.status !== "idle" && multipartUpload.status !== "done" && multipartUpload.status !== "cancelled") {
+      await multipartUpload.cancel();
+    }
+    multipartUpload.reset();
+    setReadError("");
     setStep("video");
     setIsReading(true);
-    setIsSessionLoading(false);
-    setUploadedObject(null);
-    setUploadProgress(0);
-    setUploadStatus("reading");
     try {
       const nextVideo = await readVideoFile(file);
       if (requestId !== uploadRequestRef.current) {
@@ -200,38 +233,12 @@ export default function UploadPage() {
 
       const vgroup = await generateVgroup(file);
       setIsReading(false);
-      setIsSessionLoading(true);
-      setUploadProgress(10);
-      setUploadStatus("session");
-      const sessionResponse = await getUploadSessionAPI({ vgroup });
       if (requestId !== uploadRequestRef.current) return;
-      const data: GetUploadSessionResponse = sessionResponse.data;
-      const nextSession: S3UploadSession = {
-        accessKey: data.access_key,
-        secretKey: data.secret_key,
-        token: data.token,
-        bucket: data.bucket,
-        path: data.path,
-        vgroup,
-      };
-      setIsSessionLoading(false);
-      setUploadStatus("uploading");
-      const nextObject = await uploadObjectToS3(file, nextSession, (progress) => {
-        if (requestId === uploadRequestRef.current) {
-          setUploadProgress(progress);
-        }
-      });
-      if (requestId !== uploadRequestRef.current) return;
-      setUploadedObject(nextObject);
-      setUploadStatus("done");
+      await multipartUpload.start(file, vgroup);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "视频读取或获取上传凭证失败");
-      setUploadStatus("error");
+      setReadError(error instanceof Error ? error.message : "视频读取失败");
     } finally {
-      if (requestId === uploadRequestRef.current) {
-        setIsReading(false);
-        setIsSessionLoading(false);
-      }
+      if (requestId === uploadRequestRef.current) setIsReading(false);
     }
   };
 
@@ -271,9 +278,10 @@ export default function UploadPage() {
           <div className="h-px flex-1 bg-border" />
           <div className="flex items-center gap-2">
             <span
-              className={`grid size-6 place-items-center rounded-full text-xs font-medium ${
-                step === "details" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}
+              className={cn(
+                "grid size-6 place-items-center rounded-full text-xs font-medium",
+                step === "details" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+              )}
             >
               2
             </span>
@@ -296,6 +304,9 @@ export default function UploadPage() {
                   <Upload data-icon="inline-start" />
                   {uploadButtonText}
                 </Button>
+                {multipartUpload.hasResumeRecord && !video ? (
+                  <p className="mt-3 text-sm text-muted-foreground">检测到未完成上传，重新选择原文件即可续传</p>
+                ) : null}
                 {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
                 <input ref={fileInputRef} className="hidden" type="file" accept="video/*" onChange={handleInputChange} />
               </div>
@@ -307,7 +318,7 @@ export default function UploadPage() {
                 </div>
                 <Attachment className="w-full" state={getAttachmentState(uploadStatus)}>
                   <AttachmentMedia>
-                    {uploadStatus === "uploading" || uploadStatus === "reading" || uploadStatus === "session" ? (
+                    {isProcessingStatus(uploadStatus) ? (
                       <Loader2 className="animate-spin" />
                     ) : uploadStatus === "done" ? (
                       <CheckCircle2 />
@@ -319,17 +330,44 @@ export default function UploadPage() {
                     <AttachmentContent>
                       <AttachmentTitle>{video.file.name}</AttachmentTitle>
                       <AttachmentDescription>
-                        {video.sizeLabel} · {video.durationLabel} · {getUploadDescription(uploadStatus, uploadProgress, uploadedObject)}
+                        {video.sizeLabel} · {video.durationLabel} ·{" "}
+                        {getUploadDescription(
+                          uploadStatus,
+                          uploadProgress,
+                          multipartUpload.progress.loadedBytes,
+                          multipartUpload.progress.totalBytes,
+                          uploadedObject,
+                        )}
                       </AttachmentDescription>
                     </AttachmentContent>
-                    {uploadStatus === "uploading" ? (
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full bg-primary transition-all" style={{ width: `${uploadProgress}%` }} />
-                      </div>
+                    {showProgress ? (
+                      <Progress
+                        className="mt-3 h-1.5"
+                        value={uploadProgress}
+                        aria-label={`视频上传进度 ${uploadProgress}%`}
+                      />
                     ) : null}
                   </div>
                 </Attachment>
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-3">
+                  {multipartUpload.canPause ? (
+                    <Button variant="outline" onClick={multipartUpload.pause}>
+                      <Pause data-icon="inline-start" />
+                      暂停上传
+                    </Button>
+                  ) : null}
+                  {multipartUpload.canResume ? (
+                    <Button variant="outline" onClick={() => void multipartUpload.resume()}>
+                      <Play data-icon="inline-start" />
+                      {uploadStatus === "paused" ? "继续上传" : "重新上传"}
+                    </Button>
+                  ) : null}
+                  {canCancelUpload ? (
+                    <Button variant="outline" onClick={() => void multipartUpload.cancel()}>
+                      <Trash2 data-icon="inline-start" />
+                      取消上传
+                    </Button>
+                  ) : null}
                   <Button variant="outline" disabled={isBusy} onClick={() => fileInputRef.current?.click()}>
                     <RotateCcw data-icon="inline-start" />
                     重新选择
