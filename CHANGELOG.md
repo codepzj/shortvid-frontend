@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/codepzj/shortvid-frontend/compare/v1.7.0...v1.8.0) (2026-07-25)
+
+
+### Features
+
+* upload session补充uid ([5b9c786](https://github.com/codepzj/shortvid-frontend/commit/5b9c7865109e3f758cbc7afc173cf96c0b08bfbf))
+
 # [1.7.0](https://github.com/codepzj/shortvid-frontend/compare/v1.6.0...v1.7.0) (2026-07-18)
 
 
