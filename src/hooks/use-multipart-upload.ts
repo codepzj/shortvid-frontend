@@ -16,6 +16,7 @@ import {
   removeMultipartUploadRecord,
   saveMultipartUploadRecord,
 } from "@/utils/upload-storage";
+import { useUserStore } from "@/store/user";
 
 export type MultipartUploadStatus =
   | "idle"
@@ -38,8 +39,8 @@ const EMPTY_PROGRESS: MultipartUploadProgress = {
   totalParts: 0,
 };
 
-async function getSession(vgroup: string): Promise<S3UploadSession> {
-  const response = await getUploadSessionAPI({ vgroup });
+async function getSession(uid: number, vgroup: string): Promise<S3UploadSession> {
+  const response = await getUploadSessionAPI({ uid, vgroup });
   return {
     accessKey: response.data.access_key,
     secretKey: response.data.secret_key,
@@ -66,6 +67,7 @@ function isCredentialError(error: unknown) {
 }
 
 export function useMultipartUpload() {
+  const uid = useUserStore((state) => state.user?.uid);
   const [status, setStatus] = useState<MultipartUploadStatus>("idle");
   const [progress, setProgress] = useState<MultipartUploadProgress>(EMPTY_PROGRESS);
   const [uploadedObject, setUploadedObject] = useState<S3UploadedObject | null>(null);
@@ -87,10 +89,12 @@ export function useMultipartUpload() {
     setError("");
 
     try {
+      if (!uid) throw new Error("用户信息无效，请重新登录后再上传");
+
       for (let credentialAttempt = 0; credentialAttempt < 2; credentialAttempt += 1) {
         if (runId !== runIdRef.current) return;
         setStatus(credentialAttempt === 0 ? "session" : "retrying");
-        const session = await getSession(vgroup);
+        const session = await getSession(uid, vgroup);
         if (runId !== runIdRef.current) return;
 
         try {
@@ -136,7 +140,7 @@ export function useMultipartUpload() {
         abortControllerRef.current = null;
       }
     }
-  }, []);
+  }, [uid]);
 
   const start = useCallback(
     async (file: File, vgroup: string) => {
@@ -175,7 +179,8 @@ export function useMultipartUpload() {
 
     try {
       if (record && vgroup) {
-        const session = await getSession(vgroup);
+        if (!uid) throw new Error("用户信息无效，请重新登录后再上传");
+        const session = await getSession(uid, vgroup);
         try {
           await abortMultipartUpload(session, record.uploadId);
         } catch (abortError) {
@@ -191,7 +196,7 @@ export function useMultipartUpload() {
       setError(cancelError instanceof Error ? cancelError.message : "取消分片上传失败");
       setStatus("error");
     }
-  }, []);
+  }, [uid]);
 
   const reset = useCallback(() => {
     runIdRef.current += 1;

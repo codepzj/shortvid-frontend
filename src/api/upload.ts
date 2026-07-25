@@ -2,6 +2,7 @@ import request from "@/utils/request";
 import type { ApiResponse } from "./types";
 
 export type GetUploadSessionRequest = {
+  uid: number;
   vgroup: string;
 };
 
