@@ -1,0 +1,18 @@
+<svg width="252" height="64" viewBox="0 0 252 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>ShortVid</title>
+  <defs>
+    <linearGradient id="shortvid-logo-gradient" x1="10" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="0.52" stop-color="#EC4899"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+  <path d="M7 19C7 11.268 13.268 5 21 5H43C50.732 5 57 11.268 57 19V45C57 52.732 50.732 59 43 59H21C13.268 59 7 52.732 7 45V19Z" fill="url(#shortvid-logo-gradient)"/>
+  <path d="M15 20.5C15 16.91 17.91 14 21.5 14H38.5C42.09 14 45 16.91 45 20.5V43.5C45 47.09 42.09 50 38.5 50H21.5C17.91 50 15 47.09 15 43.5V20.5Z" fill="#17131F" fill-opacity="0.88"/>
+  <path d="M27 23.624C27 22.406 28.349 21.67 29.374 22.328L42.379 30.704C43.321 31.31 43.321 32.69 42.379 33.296L29.374 41.672C28.349 42.33 27 41.594 27 40.376V23.624Z" fill="white"/>
+  <path d="M47 21H53" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.95"/>
+  <path d="M47 32H55" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.72"/>
+  <path d="M47 43H51" stroke="white" stroke-width="3" stroke-linecap="round" stroke-opacity="0.48"/>
+  <text x="74" y="42" fill="#17131F" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="32" font-weight="750" letter-spacing="-1.2">Short</text>
+  <text x="143" y="42" fill="#F97316" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="32" font-weight="750" letter-spacing="-1.2">Vid</text>
+</svg>
