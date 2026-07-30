@@ -9,6 +9,7 @@ import {
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/user-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +32,7 @@ const primaryItems = [
 
 const videos = [
   {
+    id: "video-1",
     title: "视频标题",
     views: "19万",
     comments: "23",
@@ -38,6 +40,7 @@ const videos = [
     image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=720&q=80",
   },
   {
+    id: "video-2",
     title: "视频标题",
     views: "7.2万",
     comments: "356",
@@ -45,6 +48,7 @@ const videos = [
     image: "https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=720&q=80",
   },
   {
+    id: "video-3",
     title: "视频标题",
     views: "24.8万",
     comments: "252",
@@ -52,6 +56,7 @@ const videos = [
     image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=720&q=80",
   },
   {
+    id: "video-4",
     title: "视频标题",
     views: "16.3万",
     comments: "109",
@@ -59,6 +64,7 @@ const videos = [
     image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=720&q=80",
   },
   {
+    id: "video-5",
     title: "视频标题",
     views: "84.4万",
     comments: "2042",
@@ -66,6 +72,7 @@ const videos = [
     image: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=720&q=80",
   },
   {
+    id: "video-6",
     title: "视频标题",
     views: "9.1万",
     comments: "177",
@@ -154,12 +161,15 @@ export default function HomePage() {
             <Search className="mr-2 size-4" />
             <span className="truncate">搜索视频</span>
           </div>
-          <Button asChild className="rounded-md">
-            <Link to="/upload">
-              <Upload data-icon="inline-start" />
-              投稿
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 lg:ml-auto">
+            <Button asChild className="rounded-md">
+              <Link to="/upload">
+                <Upload data-icon="inline-start" />
+                投稿
+              </Link>
+            </Button>
+            <UserMenu />
+          </div>
         </header>
 
         <main className="flex flex-1 flex-col gap-8 px-4 py-6 lg:px-8">
@@ -187,7 +197,7 @@ export default function HomePage() {
 
             <div className="grid gap-x-5 gap-y-6 sm:grid-cols-2 xl:grid-cols-3">
               {videos.slice(0, 6).map((video) => (
-                <VideoCard key={video.title} video={video} />
+                <VideoCard key={video.id} video={video} />
               ))}
             </div>
           </section>
@@ -205,7 +215,7 @@ export default function HomePage() {
             </div>
             <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {videos.map((video) => (
-                <VideoCard key={`recommend-${video.title}`} video={video} />
+                <VideoCard key={video.id} video={video} />
               ))}
             </div>
           </section>

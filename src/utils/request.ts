@@ -25,7 +25,7 @@ request.interceptors.response.use(
     if (!error.response) {
       return Promise.reject(new Error("network error"));
     }
-    return Promise.reject(new Error(error.response.data.error));
+    return Promise.reject(new Error(error.response.data?.msg || error.response.data?.error || "request failed"));
   },
 );
 

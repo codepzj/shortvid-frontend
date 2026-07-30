@@ -3,6 +3,7 @@ import { useRoutes, Navigate } from "react-router-dom";
 import { routes } from "./routes";
 import type { RouteConfig } from "./routes";
 import { Spinner } from "@/components/ui/spinner";
+import { useUserProfileSync } from "@/hooks/use-user-profile-sync";
 import { useIsAuthenticated, useUserStore } from "@/store/user";
 
 const LoadingFallback = () => (
@@ -53,6 +54,7 @@ function RouterRenderer() {
   const isAuthenticated = useIsAuthenticated();
   const hydrated = useUserStoreHydrated();
   const isLoading = !hydrated;
+  useUserProfileSync(hydrated);
 
   const routeElements = routes.map((route) => ({
     path: route.path,

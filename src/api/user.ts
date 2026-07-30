@@ -48,14 +48,9 @@ export interface UserProfile {
   provider_uid: string;
 }
 
-// 获取用户信息请求接口
-export interface GetUserProfileRequest {
-  uid: number;
-}
-
 // 获取用户信息响应接口
 export interface GetUserProfileResponse {
-  user: UserProfile;
+  user: Pick<UserProfile, "uid" | "nickname" | "avatar">;
 }
 
 // firebase登录接口
@@ -71,4 +66,24 @@ export const githubLoginAPI = async (dto: GithubLoginRequest): Promise<ApiRespon
 // gitee登录接口
 export const giteeLoginAPI = async (dto: GiteeLoginRequest): Promise<ApiResponse<LoginGiteeResponse>> => {
   return request.post<ApiResponse<LoginGiteeResponse>, ApiResponse<LoginGiteeResponse>>("/api/v1/user/gitee/login", dto);
+};
+
+// 获取用户资料
+export const getUserProfileAPI = async (
+  accessToken: string,
+): Promise<ApiResponse<GetUserProfileResponse>> => {
+  return request.post<ApiResponse<GetUserProfileResponse>, ApiResponse<GetUserProfileResponse>>(
+    "/api/v1/user/profile",
+    {},
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+};
+
+// 退出当前登录会话
+export const logoutAPI = async (accessToken: string): Promise<ApiResponse<unknown>> => {
+  return request.post<ApiResponse<unknown>, ApiResponse<unknown>>(
+    "/api/v1/user/logout",
+    {},
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
 };

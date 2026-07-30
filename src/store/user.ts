@@ -8,11 +8,14 @@ type AuthPayload = {
   refresh_token: string;
 };
 
+type UserProfilePatch = Pick<UserProfile, "uid" | "nickname" | "avatar">;
+
 type UserStore = {
   user: UserProfile | null;
   access_token: string | null;
   refresh_token: string | null;
   setAuth: (payload: AuthPayload) => void;
+  updateProfile: (profile: UserProfilePatch) => void;
   clearUser: () => void;
 };
 
@@ -24,6 +27,18 @@ export const useUserStore = create<UserStore>()(
       refresh_token: null,
       setAuth: ({ user, access_token, refresh_token }) =>
         set({ user, access_token, refresh_token }),
+      updateProfile: (profile) =>
+        set((state) => {
+          if (!state.user || state.user.uid !== profile.uid) return {};
+          return {
+            user: {
+              ...state.user,
+              uid: profile.uid,
+              nickname: profile.nickname,
+              avatar: profile.avatar,
+            },
+          };
+        }),
       clearUser: () =>
         set({ user: null, access_token: null, refresh_token: null }),
     }),

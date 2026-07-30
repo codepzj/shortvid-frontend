@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { UserMenu } from "@/components/user-menu";
 import { useMultipartUpload } from "@/hooks/use-multipart-upload";
 import type { MultipartUploadStatus } from "@/hooks/use-multipart-upload";
 import { cn } from "@/lib/utils";
@@ -267,6 +268,7 @@ export default function UploadPage() {
             <p className="text-sm text-muted-foreground">选择视频并填写发布信息</p>
           </div>
         </div>
+        <UserMenu />
       </header>
 
       <section className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6">

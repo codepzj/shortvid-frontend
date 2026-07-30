@@ -12,6 +12,9 @@ export default defineConfig({
     },
   },
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
     proxy: {
       '/api/v1/user': {
         target: "http://localhost:8001", // 开发环境用户服务地址
@@ -21,6 +24,11 @@ export default defineConfig({
         target: "http://localhost:8000", // 开发环境短视频服务地址
         changeOrigin: true,
       },
+    },
+  },
+  preview: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
   },
 })
