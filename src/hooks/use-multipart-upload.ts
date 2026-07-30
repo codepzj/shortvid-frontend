@@ -39,15 +39,29 @@ const EMPTY_PROGRESS: MultipartUploadProgress = {
   totalParts: 0,
 };
 
-async function getSession(uid: number, vgroup: string): Promise<S3UploadSession> {
+type UploadSessionResult =
+  | { exists: true; object: S3UploadedObject }
+  | { exists: false; session: S3UploadSession };
+
+async function getSession(uid: number, vgroup: string): Promise<UploadSessionResult> {
   const response = await getUploadSessionAPI({ uid, vgroup });
+  const { data } = response;
+  if (data.exists) {
+    return {
+      exists: true,
+      object: { bucket: data.bucket, path: data.path, vgroup },
+    };
+  }
   return {
-    accessKey: response.data.access_key,
-    secretKey: response.data.secret_key,
-    token: response.data.token,
-    bucket: response.data.bucket,
-    path: response.data.path,
-    vgroup,
+    exists: false,
+    session: {
+      accessKey: data.access_key,
+      secretKey: data.secret_key,
+      token: data.token,
+      bucket: data.bucket,
+      path: data.path,
+      vgroup,
+    },
   };
 }
 
@@ -71,6 +85,7 @@ export function useMultipartUpload() {
   const [status, setStatus] = useState<MultipartUploadStatus>("idle");
   const [progress, setProgress] = useState<MultipartUploadProgress>(EMPTY_PROGRESS);
   const [uploadedObject, setUploadedObject] = useState<S3UploadedObject | null>(null);
+  const [isInstantUpload, setIsInstantUpload] = useState(false);
   const [error, setError] = useState("");
   const [hasResumeRecord, setHasResumeRecord] = useState(() => Boolean(findLatestMultipartUploadRecord()));
   const fileRef = useRef<File | null>(null);
@@ -94,8 +109,26 @@ export function useMultipartUpload() {
       for (let credentialAttempt = 0; credentialAttempt < 2; credentialAttempt += 1) {
         if (runId !== runIdRef.current) return;
         setStatus(credentialAttempt === 0 ? "session" : "retrying");
-        const session = await getSession(uid, vgroup);
+        const sessionResult = await getSession(uid, vgroup);
         if (runId !== runIdRef.current) return;
+
+        if (sessionResult.exists) {
+          removeMultipartUploadRecord(vgroup);
+          setHasResumeRecord(Boolean(findLatestMultipartUploadRecord()));
+          setProgress({
+            loadedBytes: file.size,
+            totalBytes: file.size,
+            progress: 100,
+            completedParts: 1,
+            totalParts: 1,
+          });
+          setUploadedObject(sessionResult.object);
+          setIsInstantUpload(true);
+          setStatus("done");
+          return "instant" as const;
+        }
+
+        const { session } = sessionResult;
 
         try {
           const object = await uploadMultipartToS3(file, session, {
@@ -116,8 +149,9 @@ export function useMultipartUpload() {
           removeMultipartUploadRecord(vgroup);
           setHasResumeRecord(Boolean(findLatestMultipartUploadRecord()));
           setUploadedObject(object);
+          setIsInstantUpload(false);
           setStatus("done");
-          return;
+          return "uploaded" as const;
         } catch (uploadError) {
           if (isCredentialError(uploadError) && credentialAttempt === 0 && !controller.signal.aborted) {
             continue;
@@ -147,8 +181,9 @@ export function useMultipartUpload() {
       fileRef.current = file;
       vgroupRef.current = vgroup;
       setUploadedObject(null);
+      setIsInstantUpload(false);
       setProgress({ ...EMPTY_PROGRESS, totalBytes: file.size });
-      await execute(file, vgroup);
+      return execute(file, vgroup);
     },
     [execute],
   );
@@ -180,9 +215,18 @@ export function useMultipartUpload() {
     try {
       if (record && vgroup) {
         if (!uid) throw new Error("用户信息无效，请重新登录后再上传");
-        const session = await getSession(uid, vgroup);
+        const sessionResult = await getSession(uid, vgroup);
+        if (sessionResult.exists) {
+          removeMultipartUploadRecord(vgroup);
+          setHasResumeRecord(Boolean(findLatestMultipartUploadRecord()));
+          setProgress((current) => ({ ...EMPTY_PROGRESS, totalBytes: current.totalBytes }));
+          setUploadedObject(null);
+          setIsInstantUpload(false);
+          setStatus("cancelled");
+          return;
+        }
         try {
-          await abortMultipartUpload(session, record.uploadId);
+          await abortMultipartUpload(sessionResult.session, record.uploadId);
         } catch (abortError) {
           if (!(abortError instanceof S3RequestError) || abortError.status !== 404) throw abortError;
         }
@@ -191,6 +235,7 @@ export function useMultipartUpload() {
       setHasResumeRecord(Boolean(findLatestMultipartUploadRecord()));
       setProgress((current) => ({ ...EMPTY_PROGRESS, totalBytes: current.totalBytes }));
       setUploadedObject(null);
+      setIsInstantUpload(false);
       setStatus("cancelled");
     } catch (cancelError) {
       setError(cancelError instanceof Error ? cancelError.message : "取消分片上传失败");
@@ -208,6 +253,7 @@ export function useMultipartUpload() {
     setStatus("idle");
     setProgress(EMPTY_PROGRESS);
     setUploadedObject(null);
+    setIsInstantUpload(false);
     setError("");
     setHasResumeRecord(Boolean(findLatestMultipartUploadRecord()));
   }, []);
@@ -228,6 +274,7 @@ export function useMultipartUpload() {
     status,
     progress,
     uploadedObject,
+    isInstantUpload,
     error,
     hasResumeRecord,
     isActive,

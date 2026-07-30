@@ -12,6 +12,7 @@ export type GetUploadSessionResponse = {
   token: string;
   bucket: string;
   path: string;
+  exists: boolean;
 };
 
 export const getUploadSessionAPI = async (

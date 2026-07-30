@@ -235,7 +235,10 @@ export default function UploadPage() {
       const vgroup = await generateVgroup(file);
       setIsReading(false);
       if (requestId !== uploadRequestRef.current) return;
-      await multipartUpload.start(file, vgroup);
+      const result = await multipartUpload.start(file, vgroup);
+      if (requestId === uploadRequestRef.current && result === "instant") {
+        setStep("details");
+      }
     } catch (error) {
       setReadError(error instanceof Error ? error.message : "视频读取失败");
     } finally {
@@ -294,7 +297,7 @@ export default function UploadPage() {
         {step === "video" ? (
           <>
             <div
-              className="grid min-h-[420px] place-items-center rounded-lg border border-dashed bg-background transition hover:border-primary/50"
+              className="grid min-h-105 place-items-center rounded-lg border border-dashed bg-background transition hover:border-primary/50"
               onDragOver={(event) => event.preventDefault()}
               onDrop={handleDrop}
             >
@@ -402,7 +405,9 @@ export default function UploadPage() {
                       <div className="space-y-1 text-muted-foreground">
                         <div className="flex gap-2">
                           <span className="shrink-0 text-foreground">视频上传</span>
-                          <span className="text-green-600">已就绪</span>
+                          <span className="text-green-600">
+                            {multipartUpload.isInstantUpload ? "秒传完成" : "已就绪"}
+                          </span>
                         </div>
                         <div className="truncate">Bucket: {uploadedObject.bucket}</div>
                         <div className="truncate">Path: {uploadedObject.path}</div>
