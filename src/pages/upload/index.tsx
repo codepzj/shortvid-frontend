@@ -36,7 +36,6 @@ import { generateVgroup } from "@/third_party/vgroup";
 type UploadedVideo = {
   file: File;
   url: string;
-  title: string;
   sizeLabel: string;
   durationLabel: string;
 };
@@ -44,8 +43,27 @@ type UploadedVideo = {
 type UploadStep = "video" | "details";
 type UploadStatus = MultipartUploadStatus | "reading";
 
-const selectedTags = ["生活记录", "学习", "直播"];
-const recommendedTags = ["生活记录", "科技", "学习", "音乐", "记录", "新人", "原创", "自用"];
+const categories = ["生活", "知识", "科技", "游戏", "音乐", "影视", "美食", "旅行"];
+const maxTags = 8;
+
+function normalizeTag(tag: string) {
+  return tag.trim().replace(/^#+/, "").replace(/\s+/g, "").slice(0, 20);
+}
+
+function appendTagToDescription(description: string, tag: string, hasExistingTags: boolean) {
+  const trimmedDescription = description.trimEnd();
+  if (!trimmedDescription) return `#${tag}`;
+  return `${trimmedDescription}${hasExistingTags ? " " : "\n"}#${tag}`;
+}
+
+function removeTagFromDescription(description: string, tag: string) {
+  const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return description
+    .replace(new RegExp(`(^|\\s)#${escapedTag}(?=\\s|$)`, "g"), "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+#/g, "\n#")
+    .trimEnd();
+}
 
 function formatFileSize(size: number) {
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
@@ -64,10 +82,6 @@ function formatDuration(seconds: number) {
   const ss = String(restSeconds).padStart(2, "0");
 
   return hours > 0 ? `${String(hours).padStart(2, "0")}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-function titleFromFileName(name: string) {
-  return name.replace(/\.[^.]+$/, "") || name;
 }
 
 function waitForVideo(video: HTMLVideoElement, eventName: "loadedmetadata" | "seeked") {
@@ -106,7 +120,6 @@ async function readVideoFile(file: File): Promise<UploadedVideo> {
   return {
     file,
     url,
-    title: titleFromFileName(file.name),
     sizeLabel: formatFileSize(file.size),
     durationLabel: formatDuration(duration),
   };
@@ -171,7 +184,10 @@ export default function UploadPage() {
   const multipartUpload = useMultipartUpload();
   const [step, setStep] = useState<UploadStep>("video");
   const [video, setVideo] = useState<UploadedVideo | null>(null);
-  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState(categories[0]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [description, setDescription] = useState("");
   const [isReading, setIsReading] = useState(false);
   const [readError, setReadError] = useState("");
 
@@ -181,7 +197,17 @@ export default function UploadPage() {
   const error = readError || multipartUpload.error;
   const isBusy = isReading || multipartUpload.isActive;
   const canGoNext = Boolean(video && uploadedObject && uploadStatus === "done");
-  const canPublish = Boolean(video && uploadedObject && step === "details");
+  const canPublish = Boolean(video && uploadedObject && step === "details" && category && selectedTags.length);
+  const normalizedTagInput = normalizeTag(tagInput);
+  const nextDescription = normalizedTagInput
+    ? appendTagToDescription(description, normalizedTagInput, selectedTags.length > 0)
+    : description;
+  const canAddTag = Boolean(
+    normalizedTagInput &&
+      !selectedTags.includes(normalizedTagInput) &&
+      selectedTags.length < maxTags &&
+      nextDescription.length <= 2000,
+  );
   const uploadButtonText = isReading
     ? "正在读取视频..."
     : multipartUpload.isActive
@@ -230,7 +256,6 @@ export default function UploadPage() {
         if (current) URL.revokeObjectURL(current.url);
         return nextVideo;
       });
-      setTitle(nextVideo.title);
 
       const vgroup = await generateVgroup(file);
       setIsReading(false);
@@ -255,6 +280,23 @@ export default function UploadPage() {
     event.preventDefault();
     if (isBusy) return;
     void handleFile(event.dataTransfer.files?.[0]);
+  };
+
+  const addTag = (rawTag: string) => {
+    const tag = normalizeTag(rawTag);
+    if (!tag) return;
+
+    const updatedDescription = appendTagToDescription(description, tag, selectedTags.length > 0);
+    if (selectedTags.includes(tag) || selectedTags.length >= maxTags || updatedDescription.length > 2000) return;
+
+    setSelectedTags((current) => [...current, tag]);
+    setDescription(updatedDescription);
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    setSelectedTags((current) => current.filter((currentTag) => currentTag !== tag));
+    setDescription((current) => removeTagFromDescription(current, tag));
   };
 
   return (
@@ -400,23 +442,6 @@ export default function UploadPage() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     {video.sizeLabel} · {video.durationLabel}
                   </p>
-                  <div className="mt-4 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                    {uploadedObject ? (
-                      <div className="space-y-1 text-muted-foreground">
-                        <div className="flex gap-2">
-                          <span className="shrink-0 text-foreground">视频上传</span>
-                          <span className="text-green-600">
-                            {multipartUpload.isInstantUpload ? "秒传完成" : "已就绪"}
-                          </span>
-                        </div>
-                        <div className="truncate">Bucket: {uploadedObject.bucket}</div>
-                        <div className="truncate">Path: {uploadedObject.path}</div>
-                        <div className="truncate">VGroup: {uploadedObject.vgroup}</div>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">等待上传完成</span>
-                    )}
-                  </div>
                   <Button className="mt-5" variant="outline" disabled={isBusy} onClick={() => replaceInputRef.current?.click()}>
                     <RotateCcw data-icon="inline-start" />
                     {isBusy ? "上传中..." : "重新上传"}
@@ -430,16 +455,35 @@ export default function UploadPage() {
             <section className="rounded-lg border bg-background p-6">
               <h2 className="text-lg font-semibold">基本设置</h2>
               <div className="mt-6 flex flex-col gap-6">
-                <div className="flex items-center">
-                  <FieldLabel required>标题</FieldLabel>
-                  <div className="flex h-10 w-full max-w-3xl items-center rounded-md border bg-background px-3">
-                    <input
-                      className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                      maxLength={80}
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
+                <div className="flex items-start">
+                  <FieldLabel>简介</FieldLabel>
+                  <div className="w-full max-w-3xl">
+                    <Textarea
+                      className="h-36 resize-none"
+                      maxLength={2000}
+                      placeholder="填写视频简介"
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
                     />
-                    <span className="text-sm text-muted-foreground">{title.length}/80</span>
+                    <p className="mt-2 text-right text-xs text-muted-foreground">{description.length}/2000</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <FieldLabel required>分类</FieldLabel>
+                  <div className="flex max-w-3xl flex-wrap gap-2" role="group" aria-label="视频分类">
+                    {categories.map((item) => (
+                      <Button
+                        key={item}
+                        type="button"
+                        size="sm"
+                        variant={category === item ? "default" : "outline"}
+                        aria-pressed={category === item}
+                        onClick={() => setCategory(item)}
+                      >
+                        {item}
+                      </Button>
+                    ))}
                   </div>
                 </div>
 
@@ -450,24 +494,44 @@ export default function UploadPage() {
                       {selectedTags.map((tag) => (
                         <Badge key={tag} className="rounded-sm">
                           {tag}
-                          <X className="ml-1 size-3" />
+                          <button
+                            type="button"
+                            className="ml-0.5 rounded-sm outline-none hover:text-primary-foreground/70 focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label={`删除标签 ${tag}`}
+                            onClick={() => removeTag(tag)}
+                          >
+                            <X className="size-3" />
+                          </button>
                         </Badge>
                       ))}
-                      <span className="text-sm text-muted-foreground">按回车创建标签</span>
+                      <input
+                        className="h-7 min-w-36 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        aria-label="自定义标签"
+                        maxLength={20}
+                        placeholder={selectedTags.length >= maxTags ? `最多添加 ${maxTags} 个标签` : "输入自定义标签"}
+                        disabled={selectedTags.length >= maxTags}
+                        value={tagInput}
+                        onChange={(event) => setTagInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter") return;
+                          event.preventDefault();
+                          addTag(tagInput);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={!canAddTag}
+                        onClick={() => addTag(tagInput)}
+                      >
+                        添加
+                      </Button>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {recommendedTags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="rounded-sm">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      按回车或点击添加确认标签，确认后会以 #标签 形式附加在简介末尾（{selectedTags.length}/{maxTags}）
+                    </p>
                   </div>
-                </div>
-
-                <div className="flex items-start">
-                  <FieldLabel>简介</FieldLabel>
-                  <Textarea className="h-36 max-w-3xl resize-none" placeholder="填写视频简介" />
                 </div>
               </div>
             </section>
